@@ -51,4 +51,45 @@ print(serum_df_test)
 serum_df_test.to_csv("serum_with_ingredients.txt",index=False)
 
 
+## ingredients analysis ##
+# extract stop words from ingredients' info
+def get_contents(url):
+    response = requests.get(url, headers=headers)
+    # print (url)
+    html = response.text
+    dict_content= bs(html,'lxml')
+    return dict_content
+
+
+def ingre_dict():
+    item_dict={}
+    url='http://www.paulaschoice.com/ingredient-dictionary'
+    response= requests.get(url,headers=headers)
+    dict_content= response.text
+    soup=bs(dict_content,'lxml')
+    items = soup.find_all('h2',"name ingredient-name")
+    for i in items:
+        name=i.get_text()
+        name=name.strip().replace(',','-')
+        i_url=i.a.get('href')
+        item_contents= get_contents(i_url)
+        score = re.compile(r'rating-.*')
+        rating = item_contents.find('span',score).get_text()
+        category = item_contents.find("div", "u-miscellaneous-pagetitle").findNext('a').get_text()
+        try:
+            contents = item_contents.find("div", "upper-body").p.get_text().strip().replace(u'\xa0', u' ')
+        except:
+            try:
+                contents = item_contents.find("div", "upper-body").get_text().strip().replace(u'\xa0', u' ')
+            except:
+                contents = ""
+        item_dict[name]={}
+        item_dict[name]['url']=i_url
+        item_dict[name]['functions']= contents
+        item_dict[name]['rating'] = rating
+        item_dict[name]['category']= category
+    return (item_dict)
+
+with open ('ingredients_dictionary.txt','w') as file:
+    json.dumps(ingre_dict())
 
